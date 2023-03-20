@@ -20,7 +20,6 @@ void buffer_init() {
 }
 
 int buffer_write(uint8_t* data, int length) {
-    int original_write_pos = write_pos;
     int end_pos = write_pos + length;
     if (end_pos < BUFFER_SIZE) {
         memcpy(&buffer[write_pos], data, length);
