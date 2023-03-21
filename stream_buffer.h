@@ -3,46 +3,51 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef APP_CIRCULAR_BUFFER_H_INCLUDED
-#define APP_CIRCULAR_BUFFER_H_INCLUDED
+#ifndef APP_STREAM_BUFFER_H_INCLUDED
+#define APP_STREAM_BUFFER_H_INCLUDED
 
 #define BUFFER_SIZE 80
 
 uint8_t buffer[BUFFER_SIZE];
-
+uint32_t byte_count = 0;
 uint32_t read_pos = 0;
 uint32_t write_pos = 0;
 
-void buffer_init() {
+void stream_buffer_init() {
+    byte_count = 0;
     read_pos = 0;
     write_pos = 0;
     memset(buffer, 0, sizeof(buffer));
 }
 
-// Returns bytes read
-uint32_t buffer_write(uint8_t* data, uint32_t length) {
-    uint32_t end_pos = write_pos + length;
-    if (end_pos < BUFFER_SIZE) {
+// Returns bytes written
+uint32_t stream_buffer_write(uint8_t* data, uint32_t length) {
+    uint32_t next_write_pos = (write_pos + length) % BUFFER_SIZE;
+    if (next_write_pos >= read_pos && next_write_pos - read_pos < length) {
+        return 0; // read_pos has been lapped: buffer overflow
+    }
+
+    if (next_write_pos > write_pos) {
         memcpy(&buffer[write_pos], data, length);
     }
     else {
-        uint32_t start_bytes_to_write = end_pos - BUFFER_SIZE;
+        uint32_t start_bytes_to_write = write_pos + length - BUFFER_SIZE;
         uint32_t end_bytes_to_write = length - start_bytes_to_write;
         memcpy(&buffer[write_pos], &data[0], end_bytes_to_write); // Write to end of buffer
         memcpy(buffer, &data[end_bytes_to_write], start_bytes_to_write); // Write to start of buffer
     }
-    write_pos = end_pos % BUFFER_SIZE;
-    // Check if read_pos has been lapped
-    if (write_pos > read_pos && write_pos - read_pos < length) {
-        return -1;
+
+    write_pos = next_write_pos;
+    if (byte_count < BUFFER_SIZE) {
+        uint32_t available = (byte_count + length);
+        byte_count = available < BUFFER_SIZE ? available : BUFFER_SIZE;
     }
-    else {
-        return length;
-    }
+    
+    return length;
 }
 
 // Returns bytes read
-uint32_t buffer_read_from_pos(uint8_t* data, uint32_t max_length, uint32_t start_pos, uint32_t *next_start_pos) {
+uint32_t stream_buffer_read_from_pos(uint8_t* data, uint32_t max_length, uint32_t start_pos, uint32_t *next_start_pos) {
     uint32_t bytes_available;
     
     if (write_pos >= start_pos) {
@@ -77,9 +82,9 @@ uint32_t buffer_read_from_pos(uint8_t* data, uint32_t max_length, uint32_t start
 }
 
 // Returns bytes read
-uint32_t buffer_read_next(uint8_t* data, uint32_t max_length) {
+uint32_t stream_buffer_read_next(uint8_t* data, uint32_t max_length) {
     uint32_t next_start_pos;
-    return buffer_read_from_pos(data, max_length, read_pos, &next_start_pos);
+    return stream_buffer_read_from_pos(data, max_length, read_pos, &next_start_pos);
 }
 
-#endif // APP_CIRCULAR_BUFFER_H_INCLUDED
+#endif // APP_STREAM_BUFFER_H_INCLUDED
