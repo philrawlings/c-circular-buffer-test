@@ -30,7 +30,6 @@ void assert_int(int expected, int actual) {
 void simple_test() { 
 	uint8_t buffer[100];
 	int byte_count; 
-	int start_pos;
 
 	buffer_init();
 
@@ -41,13 +40,11 @@ void simple_test() {
 	byte_count = buffer_write(buffer, 32);
 	assert_int(32, byte_count);
 
-	byte_count = buffer_read(buffer, 32, &start_pos);
+	byte_count = buffer_read_next(buffer, 32);
 	assert_int(32, byte_count);
-	assert_int(0, start_pos);
 	verify_data(buffer, 32, 0);
-	byte_count = buffer_read(buffer, 32, &start_pos);
+	byte_count = buffer_read_next(buffer, 32);
 	assert_int(32, byte_count);
-	assert_int(32, start_pos);
 	verify_data(buffer, 32, 32);
 
 	set_data(buffer, 32);
@@ -57,54 +54,62 @@ void simple_test() {
 	byte_count = buffer_write(buffer, 32);
 	assert_int(32, byte_count);
 
-	byte_count = buffer_read(buffer, 50, &start_pos);
+	byte_count = buffer_read_next(buffer, 50);
 	verify_data(buffer, 50, 64);
 	assert_int(50, byte_count);
-	assert_int(64, start_pos);
-	byte_count = buffer_read(buffer, 14, &start_pos);
+	byte_count = buffer_read_next(buffer, 14);
 	assert_int(14, byte_count);
-	assert_int(34, start_pos);
 	verify_data(buffer, 14, 114);
 
 	set_data(buffer, 60);
 	byte_count = buffer_write(buffer, 60);
 	assert_int(60, byte_count);
-	byte_count = buffer_read(buffer, 60, &start_pos);
+	byte_count = buffer_read_next(buffer, 60);
 	assert_int(60, byte_count);
-	assert_int(48, start_pos);
 	verify_data(buffer, 60, 128);
 
 	set_data(buffer, 79);
 	byte_count = buffer_write(buffer, 79);
 	assert_int(79, byte_count);
-	byte_count = buffer_read(buffer, 79, &start_pos);
+	byte_count = buffer_read_next(buffer, 79);
 	assert_int(79, byte_count);
-	assert_int(28, start_pos);
 	verify_data(buffer, 79, 188);
 
 	set_data(buffer, 79);
 	byte_count = buffer_write(buffer, 79);
 	assert_int(79, byte_count);
-	byte_count = buffer_read(buffer, 79, &start_pos);
+	byte_count = buffer_read_next(buffer, 79);
 	assert_int(79, byte_count);
-	assert_int(27, start_pos);
 	verify_data(buffer, 79, 11); // Wrap
+
+	val = 0;
+	buffer_init();
+	set_data(buffer, 10);
+	byte_count = buffer_write(buffer, 10);
+	assert_int(10, byte_count);
+	int next_start_pos;
+	byte_count = buffer_read_from_pos(buffer, 5, 5, &next_start_pos);
+	assert_int(5, byte_count);
+	assert_int(10, next_start_pos);
+	verify_data(buffer, 5, 5);
+
 
 	printf("Simple test complete!\n");
 }
 
 void loop_test() {
+	val = 0;
 	buffer_init();
 	uint8_t buffer[15];
-	int start_pos;
-	int calc_start_pos = 0;
+	uint8_t start_value = 0;
 	for (int i = 0; i < 1000000; i++) {
+		set_data(buffer, sizeof(buffer));
 		int byte_count = buffer_write(buffer, sizeof(buffer));
 		assert_int(sizeof(buffer), byte_count);
-		byte_count = buffer_read(buffer, sizeof(buffer), &start_pos);
-		assert_int(sizeof(buffer), byte_count);		
-		assert_int(calc_start_pos, start_pos);
-		calc_start_pos = (calc_start_pos + byte_count) % 80;
+		byte_count = buffer_read_next(buffer, sizeof(buffer));
+		assert_int(sizeof(buffer), byte_count);
+		verify_data(buffer, sizeof(buffer), start_value);
+		start_value += sizeof(buffer);
 	}
 	printf("Loop test complete!\n");
 }
@@ -125,16 +130,12 @@ DWORD WINAPI writer_thread(void *data) {
 DWORD WINAPI reader_thread(void *data) {
 	uint8_t buffer[50];
 	uint8_t start_value = 0;
-	int start_pos;
-	int calc_start_pos = 0;
 	while(1) {
-		int byte_count = buffer_read(buffer, sizeof(buffer), &start_pos);
+		int byte_count = buffer_read_next(buffer, sizeof(buffer));
 		if (byte_count == 0) {
 			Sleep(2);
 		}
 		else {
-			assert_int(calc_start_pos, start_pos);
-			calc_start_pos = (calc_start_pos + byte_count) % 80;
 			verify_data(buffer, byte_count, start_value);
 			start_value = start_value + byte_count;
 		}

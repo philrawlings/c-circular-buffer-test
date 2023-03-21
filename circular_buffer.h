@@ -40,15 +40,14 @@ int buffer_write(uint8_t* data, int length) {
     }
 }
 
-int buffer_read(uint8_t* data, int max_length, uint32_t *start_pos) {
-    int original_read_pos = read_pos;
+int buffer_read_from_pos(uint8_t* data, int max_length, uint32_t start_pos, uint32_t *next_start_pos) {
     int bytes_available;
     
-    if (write_pos >= read_pos) {
-        bytes_available = write_pos - read_pos;
+    if (write_pos >= start_pos) {
+        bytes_available = write_pos - start_pos;
     }
     else {
-        bytes_available = BUFFER_SIZE + write_pos - read_pos;
+        bytes_available = BUFFER_SIZE + write_pos - start_pos;
     }
 
     if (bytes_available == 0) {
@@ -60,19 +59,24 @@ int buffer_read(uint8_t* data, int max_length, uint32_t *start_pos) {
         return 0;
     }
 
-    int bytes_to_end = BUFFER_SIZE - read_pos;
+    int bytes_to_end = BUFFER_SIZE - start_pos;
     if (bytes_to_read <= bytes_to_end) {
-        memcpy(data, &buffer[read_pos], bytes_to_read);
+        memcpy(data, &buffer[start_pos], bytes_to_read);
     }
     else {
         int start_bytes_to_read = bytes_to_read - bytes_to_end;
-        memcpy(data, &buffer[read_pos], bytes_to_end);
+        memcpy(data, &buffer[start_pos], bytes_to_end);
         memcpy(&data[bytes_to_end], buffer, start_bytes_to_read);
     }
-    read_pos += bytes_to_read;
-    read_pos %= BUFFER_SIZE;
-    *start_pos = original_read_pos;
+
+    *next_start_pos = (start_pos + bytes_to_read) % BUFFER_SIZE;
+    read_pos = *next_start_pos;
     return bytes_to_read;
+}
+
+int buffer_read_next(uint8_t* data, int max_length) {
+    uint32_t next_start_pos;
+    return buffer_read_from_pos(data, max_length, read_pos, &next_start_pos);
 }
 
 #endif // APP_CIRCULAR_BUFFER_H_INCLUDED
