@@ -10,8 +10,8 @@
 
 uint8_t buffer[BUFFER_SIZE];
 
-int read_pos = 0;
-int write_pos = 0;
+uint32_t read_pos = 0;
+uint32_t write_pos = 0;
 
 void buffer_init() {
     read_pos = 0;
@@ -19,14 +19,15 @@ void buffer_init() {
     memset(buffer, 0, sizeof(buffer));
 }
 
-int buffer_write(uint8_t* data, int length) {
-    int end_pos = write_pos + length;
+// Returns bytes read
+uint32_t buffer_write(uint8_t* data, uint32_t length) {
+    uint32_t end_pos = write_pos + length;
     if (end_pos < BUFFER_SIZE) {
         memcpy(&buffer[write_pos], data, length);
     }
     else {
-        int start_bytes_to_write = end_pos - BUFFER_SIZE;
-        int end_bytes_to_write = length - start_bytes_to_write;
+        uint32_t start_bytes_to_write = end_pos - BUFFER_SIZE;
+        uint32_t end_bytes_to_write = length - start_bytes_to_write;
         memcpy(&buffer[write_pos], &data[0], end_bytes_to_write); // Write to end of buffer
         memcpy(buffer, &data[end_bytes_to_write], start_bytes_to_write); // Write to start of buffer
     }
@@ -40,8 +41,9 @@ int buffer_write(uint8_t* data, int length) {
     }
 }
 
-int buffer_read_from_pos(uint8_t* data, int max_length, uint32_t start_pos, uint32_t *next_start_pos) {
-    int bytes_available;
+// Returns bytes read
+uint32_t buffer_read_from_pos(uint8_t* data, uint32_t max_length, uint32_t start_pos, uint32_t *next_start_pos) {
+    uint32_t bytes_available;
     
     if (write_pos >= start_pos) {
         bytes_available = write_pos - start_pos;
@@ -54,17 +56,17 @@ int buffer_read_from_pos(uint8_t* data, int max_length, uint32_t start_pos, uint
         return 0;
     }
 
-    int bytes_to_read = max_length < bytes_available ? max_length : bytes_available;
+    uint32_t bytes_to_read = max_length < bytes_available ? max_length : bytes_available;
     if (bytes_to_read == 0) {
         return 0;
     }
 
-    int bytes_to_end = BUFFER_SIZE - start_pos;
+    uint32_t bytes_to_end = BUFFER_SIZE - start_pos;
     if (bytes_to_read <= bytes_to_end) {
         memcpy(data, &buffer[start_pos], bytes_to_read);
     }
     else {
-        int start_bytes_to_read = bytes_to_read - bytes_to_end;
+        uint32_t start_bytes_to_read = bytes_to_read - bytes_to_end;
         memcpy(data, &buffer[start_pos], bytes_to_end);
         memcpy(&data[bytes_to_end], buffer, start_bytes_to_read);
     }
@@ -74,7 +76,8 @@ int buffer_read_from_pos(uint8_t* data, int max_length, uint32_t start_pos, uint
     return bytes_to_read;
 }
 
-int buffer_read_next(uint8_t* data, int max_length) {
+// Returns bytes read
+uint32_t buffer_read_next(uint8_t* data, uint32_t max_length) {
     uint32_t next_start_pos;
     return buffer_read_from_pos(data, max_length, read_pos, &next_start_pos);
 }

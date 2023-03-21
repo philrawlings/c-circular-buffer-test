@@ -93,6 +93,17 @@ void simple_test() {
 	assert_int(10, next_start_pos);
 	verify_data(buffer, 5, 5);
 
+	byte_count = buffer_read_from_pos(buffer, 7, 2, &next_start_pos);
+	assert_int(7, byte_count);
+	assert_int(9, next_start_pos);
+	verify_data(buffer, 7, 2);
+	byte_count = buffer_read_from_pos(buffer, 1, 9, &next_start_pos);
+	assert_int(1, byte_count);
+	assert_int(10, next_start_pos);
+	verify_data(buffer, 1, 9);
+	byte_count = buffer_read_from_pos(buffer, 1, 10, &next_start_pos); // No new data to read
+	assert_int(0, byte_count);
+	assert_int(10, next_start_pos);
 
 	printf("Simple test complete!\n");
 }
