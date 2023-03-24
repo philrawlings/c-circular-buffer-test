@@ -126,6 +126,27 @@ void simple_test() {
 	byte_count = stream_buffer_write(buffer, 1); // overflow
 	assert_int(0, byte_count);
 
+	// No data to read
+	val = 0;
+	stream_buffer_init();
+	byte_count = stream_buffer_read_next(buffer, 50);
+	assert_int(0, byte_count);
+	set_data(buffer, 32);
+	byte_count = stream_buffer_write(buffer, 32);
+	assert_int(32, byte_count);
+	byte_count = stream_buffer_read_next(buffer, 32);
+	assert_int(32, byte_count);
+	verify_data(buffer, 32, 0);
+	byte_count = stream_buffer_read_next(buffer, 50);
+	assert_int(0, byte_count);
+	
+	// No data to read (random access)
+	val = 0;
+	stream_buffer_init();
+	byte_count = stream_buffer_read_from_pos(buffer, 50, 0, &next_start_pos);
+	assert_int(0, byte_count);
+	assert_int(0, next_start_pos);
+
 	printf("Simple test complete!\n");
 }
 

@@ -58,11 +58,13 @@ uint32_t stream_buffer_read_from_pos(uint8_t* data, uint32_t max_length, uint32_
     }
 
     if (bytes_available == 0) {
+        *next_start_pos = read_pos;
         return 0;
     }
 
     uint32_t bytes_to_read = max_length < bytes_available ? max_length : bytes_available;
     if (bytes_to_read == 0) {
+        *next_start_pos = read_pos;
         return 0;
     }
 
